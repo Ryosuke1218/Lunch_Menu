@@ -2,11 +2,11 @@ import sqlalchemy
 from sqlalchemy import Column, Integer, select, String, desc
 from sqlalchemy.orm import sessionmaker, declarative_base, scoped_session
 import numpy as np
+import os
 
 engine = sqlalchemy.create_engine('sqlite:///Lunch_Menu.sqlite', echo=False)   # エンジン作成
 Base = declarative_base()   # ベース作成
 Session = scoped_session(sessionmaker(autoflush=False, bind=engine))   # セッション作成
-Base.metadata.create_all(engine)
 
 
 class DataBase(Base):
@@ -20,13 +20,17 @@ class DataBase(Base):
         self.store_name = store_name
         self.priority = priority
 
+    def check_database_exists(self, db_path):
+        return os.path.exists(db_path)
+
     def add_data(self):  # データベースに追加
-        if self.get_index(self.store_name) is not None:
-            print("既に登録されています")
-            return
-        elif self.store_name is None:
-            print("店名が入力されていません")
-            return
+        if self.check_database_exists("Lunch_Menu.sqlite"):
+            if self.get_index(self.store_name) is not None:
+                print("既に登録されています")
+                return
+            elif self.store_name is None:
+                print("店名が入力されていません")
+                return
         new_entry = DataBase(store_name=self.store_name, priority=self.priority)
         Session.add(new_entry)   # データベースに追加
         Session.commit()    # データベースにコミット
@@ -44,6 +48,7 @@ class DataBase(Base):
             action_info = row[0].store_name
             # action_info.append(row[0].priority)
         else:
+            print("データが存在しません")
             action_info = None
         return action_info
 
@@ -54,6 +59,10 @@ class DataBase(Base):
         else:
             id = None
         return id
+
+    def delete(self, index: int):   # データベースからデータを削除
+        Session.query(DataBase).filter(DataBase.id == index).delete()
+        Session.commit()
 
     def delete_store_name(self, delete_store_name):
         Session.query(DataBase).filter(DataBase.store_name == delete_store_name).delete()
@@ -87,7 +96,6 @@ class DataBase(Base):
         stmt = select(DataBase.priority)
         result = Session.execute(stmt)
         priority_list = [row[0] for row in result]
-        print(priority_list)
         return priority_list
     
     def get_all_store_name(self):
@@ -99,8 +107,12 @@ class DataBase(Base):
     def change_priority(self, selected_store_name):
         selected_index = self.get_index(selected_store_name)
         next_priority = self.get_priority(selected_index) - 1
-        Session.query(DataBase).filter(DataBase.store_name == selected_store_name).update({DataBase.priority: next_priority})
-        Session.commit()
+        if current_priority == 1:
+            Session.query(DataBase).filter(DataBase.store_name == selected_store_name).update({DataBase.priority: 5})
+            Session.commit()
+        else:
+            Session.query(DataBase).filter(DataBase.store_name == selected_store_name).update({DataBase.priority: next_priority})
+            Session.commit()
 
 
 class operation_menu:
@@ -190,7 +202,8 @@ class operation_menu:
         total_priority = sum(priority for priority in priority_list)
         probabilities = [priority / total_priority for priority in priority_list]
         selected_index = np.random.choice(index_list, p=probabilities)
-        selected_store_id = int(selected_index + 1)
+        selected_store_id = int(selected_index+1)
+        print(selected_store_id)
 
         selected_store = store.get(selected_store_id)
         return selected_store
@@ -200,7 +213,6 @@ class operation_menu:
         store.change_priority(selected_store_name)
 
 
-
-
+Base.metadata.create_all(engine)
 if __name__ == "__main__":
     menu = operation_menu()

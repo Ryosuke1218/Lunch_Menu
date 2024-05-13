@@ -34,15 +34,15 @@ class display_menu:
         with dpg.window(label="店名の追加", width=600, pos=[0, 0], height=500) as add_store_window:
             store_name = dpg.add_input_text(label="店名を入力してください")
             priority = dpg.add_input_text(label="優先度を入力してください")
-            add_store_button = dpg.add_button(label="追加")
+            add_store_button = dpg.add_button(label="追加", callback=self.add_store_to_Database_call_back, user_data=(store_name, priority, add_store_window))
 
-            if dpg.is_item_clicked(add_store_button):
-                store_name = dpg.get_value(store_name)
-                priority = dpg.get_value(priority)
-                store = DataBase(store_name, priority)
-                store.add_data()
-                print("データを追加しました")
-                self.delete_window_call_back(add_store_window)
+    def add_store_to_Database_call_back(self, sender, app_data, user_data):
+        store_name = dpg.get_value(user_data[0])
+        priority = dpg.get_value(user_data[1])
+        store = DataBase(store_name, priority)
+        store.add_data()
+        print("データを追加しました")
+        self.delete_window_call_back(sender, app_data, user_data = user_data[2])
 
     def change_store_name_call_back(self):
         with dpg.window(label="店名の変更", width=600, pos=[0, 0], height=500) as change_store_window:
@@ -52,22 +52,22 @@ class display_menu:
 
             store_name = dpg.add_input_text(label="変更前の店名を入力してください")
             change_store_name = dpg.add_input_text(label="変更後の店名を入力してください")
-            change_store_button = dpg.add_button(label="変更")
+            change_store_button = dpg.add_button(label="変更", callback=self.change_store_button_call_back, user_data=(store_name, change_store_name, all_storage_store_name, change_store_window))
 
-            if dpg.is_item_clicked(change_store_button):
-                store_name = dpg.get_value(store_name)
-                change_store_name = dpg.get_value(change_store_name)
-                if store_name not in all_storage_store_name:
-                    print("入力された店名は存在しません")
-                elif store_name == change_store_name:
-                    print("変更前の店名と変更後の店名が同じです")
-                elif store_name == "" | change_store_name == "":
-                    print("店名が入力されていません")
-                else:
-                    store = DataBase(store_name, change_store_name)
-                    store.change_data()
-                    print("データを変更しました")
-                    self.delete_window_call_back(change_store_window)
+    def change_store_button_call_back(self, sender, app_data, user_data):
+        store_name = dpg.get_value(user_data[0])
+        change_store_name = dpg.get_value(user_data[1])
+        if store_name not in user_data[2]:
+            print("入力された店名は存在しません")
+        elif store_name == change_store_name:
+            print("変更前の店名と変更後の店名が同じです")
+        elif store_name == "" | change_store_name == "":
+            print("店名が入力されていません")
+        else:
+            store = DataBase(store_name, change_store_name)
+            store.change_data()
+            print("店名を変更しました")
+            self.delete_window_call_back(user_data[3])
 
     def delete_store_name_call_back(self):
         with dpg.window(label="店名の削除", width=600, pos=[0, 0], height=500) as delete_store_window:
@@ -100,7 +100,11 @@ class display_menu:
         with dpg.window(label="ルーレット", width=600, pos=[0, 0], height=500) as roulette_window:
             dpg.add_text(selected_store)
             accept_button = dpg.add_button(label="OK", callback=self.delete_roulette_window_call_back, user_data=(selected_store, roulette_window))
-            roulette_button = dpg.add_button(label="再抽選", callback=self.roulette_call_back)
+            roulette_button = dpg.add_button(label="再抽選", callback=self.roulette_again_call_back, user_data=roulette_window)
+
+    def roulette_again_call_back(self, sender=None, app_data=None, user_data=None):
+        dpg.delete_item(user_data)
+        self.roulette_call_back()
 
 
     def delete_roulette_window_call_back(self, sender, app_data, user_data):
